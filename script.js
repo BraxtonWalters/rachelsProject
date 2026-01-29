@@ -1,19 +1,21 @@
 var AFTER_HOURS_LINK = 'https://ocls.indwes.edu/tutorials/ocls-answers';
 var ONE_HOUR = 3600000;
+var TIMEZONE = 'America/New_York';
+var TIMEZONE_ABBR = 'ET';
 
-function getEstDate(date = new Date()) {
-    return new Date(date.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+function getLocalDate(date = new Date()) {
+    return new Date(date.toLocaleString('en-US', { timeZone: TIMEZONE }));
 }
 
 var holidayNotices = [
     {
-        startDate: getEstDate(new Date(2024, 11, 17, 0)), // December 17, 2024
-        endDate: getEstDate(new Date(2024, 11, 23, 17)), // December 23, 2024
+        startDate: getLocalDate(new Date(2024, 11, 17, 0)), // December 17, 2024
+        endDate: getLocalDate(new Date(2024, 11, 23, 17)), // December 23, 2024
         message: "🎄 OCLS will close for Christmas and the New Year starting Monday, December 23, at 5 pm (ET). 🎄<br />We reopen Thursday, January 2, at 8 am (ET)<br>The databases and tutorials are available 24/7."
     },
     {
-        startDate: getEstDate(new Date(2024, 11, 23, 17)), // December 23, 2024 
-        endDate: getEstDate(new Date(2025, 0, 1, 23)), // January 1, 2025
+        startDate: getLocalDate(new Date(2024, 11, 23, 17)), // December 23, 2024 
+        endDate: getLocalDate(new Date(2025, 0, 1, 23)), // January 1, 2025
         message: "We are closed for Christmas and the New Year. We reopen Thursday, January 2, at 8 am (ET).<br />The databases and tutorials are available 24/7."
     }
 ];
@@ -76,7 +78,7 @@ var overrideHours = [
 ];
 
 function checkHolidayNotice(today, holidayNotices) {
-    var estToday = getEstDate(today);
+    var estToday = getLocalDate(today);
     var currentNotice = null;
 
     for (var i = 0; i < holidayNotices.length; i++) {
@@ -99,7 +101,7 @@ function checkHolidayNotice(today, holidayNotices) {
 }
 
 function checkOverrides(today, overrides) {
-    var estToday = getEstDate(today);
+    var estToday = getLocalDate(today);
 
     function padNumber(num) {
         return num < 10 ? '0' + num : num;
@@ -162,17 +164,17 @@ function timeFormatter(startHour, startMin, endHour, endMin) {
             hour: 'numeric',
             minute: '2-digit',
             hour12: true,
-            timeZone: 'America/New_York'
+            timeZone: TIMEZONE
         });
         var startStr = formatter.format(start);
         var endStr = formatter.format(end);
         // Remove :00 for times on the hour for cleaner display
         startStr = startStr.replace(/:00/, '');
         endStr = endStr.replace(/:00/, '');
-        return startStr + " - " + endStr + " (ET)";
+        return startStr + " - " + endStr + " (" + TIMEZONE_ABBR + ")";
     }
 
-    return formatTime(startHour, startMin) + " - " + formatTime(endHour, endMin) + " (ET)";
+    return formatTime(startHour, startMin) + " - " + formatTime(endHour, endMin) + " (" + TIMEZONE_ABBR + ")";
 }
 
 function updateHoursAndNotices() {
@@ -199,7 +201,7 @@ function updateHoursAndNotices() {
     var isAfterHours = false;
 
     function isCurrentlyOpen(startHour, startMin, endHour, endMin) {
-        var now = getEstDate(today);
+        var now = getLocalDate(today);
         var currentMinutes = now.getHours() * 60 + now.getMinutes();
         var openMinutes = startHour * 60 + startMin;
         var closeMinutes = endHour * 60 + endMin;
@@ -207,7 +209,7 @@ function updateHoursAndNotices() {
     }
 
     if (!override.isOverride) {
-        var day = regularHours[getEstDate(today).getDay()];
+        var day = regularHours[getLocalDate(today).getDay()];
         console.log(day);
         if (day.isOpen && isCurrentlyOpen(day.startHour, day.startMin, day.endHour, day.endMin)) {
             message = 'Open today: ' + timeFormatter(day.startHour, day.startMin, day.endHour, day.endMin);
