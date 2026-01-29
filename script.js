@@ -26,13 +26,13 @@ var holidayNotices = [
 
 //REGULAR HOURS DO NOT CHANGE HOLIDAY HOURS ARE LISTED BELOW
 var regularHours = [
-  { day: 0, isOpen: false }, // Sunday
+  { day: 0, isOpen: false },                                                   // Sunday
   { day: 1, isOpen: true, startHour: 8, startMin: 0, endHour: 20, endMin: 0 }, // Monday
   { day: 2, isOpen: true, startHour: 8, startMin: 0, endHour: 20, endMin: 0 }, // Tuesday
   { day: 3, isOpen: true, startHour: 8, startMin: 0, endHour: 20, endMin: 0 }, // Wednesday
   { day: 4, isOpen: true, startHour: 8, startMin: 0, endHour: 20, endMin: 0 }, // Thursday
   { day: 5, isOpen: true, startHour: 8, startMin: 0, endHour: 17, endMin: 0 }, // Friday
-  { day: 6, isOpen: false }, // Saturday
+  { day: 6, isOpen: false },                                                   // Saturday
 ];
 
 //SPECIAL TODAY'S HOURS - PUT DAYS WHERE HOURS ARE DIFF THAN NORMAL OR WE ARE CLOSED - JAN NOT 0 BASED HERE - NORMAL DATE NUMBERS YYYY-MM-DD -->
@@ -170,11 +170,15 @@ function updateHoursAndNotices() {
 
   if (notice) {
     if (!alertContainer) {
-      var newAlertContainer = document.createElement("div");
-      newAlertContainer.id = "holiday-alert-container";
-      var firstElement = document.body.firstChild;
-      document.body.insertBefore(newAlertContainer, firstElement);
-      newAlertContainer.innerHTML = notice;
+      if (document && document.body) {
+        var newAlertContainer = document.createElement("div");
+        newAlertContainer.id = "holiday-alert-container";
+        document.body.insertBefore(
+          newAlertContainer,
+          document.body.firstChild || null
+        );
+        newAlertContainer.innerHTML = notice;
+      }
     } else {
       alertContainer.innerHTML = notice;
     }
@@ -257,6 +261,7 @@ function updateHoursAndNotices() {
   }
 }
 
-updateHoursAndNotices();
-
-setInterval(updateHoursAndNotices, ONE_HOUR);
+document.addEventListener("DOMContentLoaded", function () {
+  updateHoursAndNotices();
+  setInterval(updateHoursAndNotices, ONE_HOUR);
+});
