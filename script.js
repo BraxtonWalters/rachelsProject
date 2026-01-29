@@ -19,13 +19,13 @@ var holidayNotices = [
 ];
 
 var regularHours = [
-    { day: 0, isOpen: false, hours: null },              // Sunday
-    { day: 1, isOpen: true, startHour: 8, endHour: 20 }, // Monday
-    { day: 2, isOpen: true, startHour: 8, endHour: 20 }, // Tuesday
-    { day: 3, isOpen: true, startHour: 8, endHour: 20 }, // Wednesday
-    { day: 4, isOpen: true, startHour: 8, endHour: 20 }, // Thursday
-    { day: 5, isOpen: true, startHour: 8, endHour: 17 }, // Friday
-    { day: 6, isOpen: false, hours: null }               // Saturday
+    { day: 0, isOpen: false },                                          // Sunday
+    { day: 1, isOpen: true, startHour: 7, startMin: 30, endHour: 20, endMin: 0 }, // Monday
+    { day: 2, isOpen: true, startHour: 7, startMin: 30, endHour: 20, endMin: 0 }, // Tuesday
+    { day: 3, isOpen: true, startHour: 7, startMin: 30, endHour: 20, endMin: 0 }, // Wednesday
+    { day: 4, isOpen: true, startHour: 7, startMin: 30, endHour: 20, endMin: 0 }, // Thursday
+    { day: 5, isOpen: true, startHour: 7, startMin: 30, endHour: 17, endMin: 0 }, // Friday
+    { day: 6, isOpen: false }                                           // Saturday
 ];
 
 var overrideHours = [
@@ -33,7 +33,9 @@ var overrideHours = [
         isOpen: true,
         date: "2024-12-23",
         startHour: 8,
-        endHour: 17
+        startMin: 0,
+        endHour: 17,
+        endMin: 0
     },
     {
         isOpen: false,
@@ -124,7 +126,9 @@ function checkOverrides(today, overrides) {
             isOverride: true,
             isOpen: override.isOpen,
             startHour: override.startHour,
-            endHour: override.endHour
+            startMin: override.startMin || 0,
+            endHour: override.endHour,
+            endMin: override.endMin || 0
         };
     }
 
@@ -134,32 +138,41 @@ function checkOverrides(today, overrides) {
     };
 }
 
-function timeFormatter(startHour, endHour) {
-    function formatTime(hour) {
+function timeFormatter(startHour, startMin, endHour, endMin) {
+    function formatTime(hour, min) {
         var suffix = hour >= 12 ? "pm" : "am";
         var displayHour = hour % 12;
         if (displayHour === 0) {
             displayHour = 12;
         }
-        return displayHour + " " + suffix;
+        if (min === 0) {
+            return displayHour + " " + suffix;
+        }
+        return displayHour + ":" + (min < 10 ? "0" : "") + min + " " + suffix;
     }
 
     var start = new Date();
-    start.setHours(startHour, 0, 0);
+    start.setHours(startHour, startMin, 0);
 
     var end = new Date();
-    end.setHours(endHour, 0, 0);
+    end.setHours(endHour, endMin, 0);
 
     if (typeof Intl !== 'undefined' && Intl.DateTimeFormat) {
         var formatter = new Intl.DateTimeFormat('en-US', {
             hour: 'numeric',
+            minute: '2-digit',
             hour12: true,
             timeZone: 'America/New_York'
         });
-        return formatter.format(start) + " - " + formatter.format(end) + " (ET)";
+        var startStr = formatter.format(start);
+        var endStr = formatter.format(end);
+        // Remove :00 for times on the hour for cleaner display
+        startStr = startStr.replace(/:00/, '');
+        endStr = endStr.replace(/:00/, '');
+        return startStr + " - " + endStr + " (ET)";
     }
 
-    return formatTime(startHour) + " - " + formatTime(endHour) + " (ET)";
+    return formatTime(startHour, startMin) + " - " + formatTime(endHour, endMin) + " (ET)";
 }
 
 function updateHoursAndNotices() {
@@ -185,14 +198,19 @@ function updateHoursAndNotices() {
     var message = "";
     var isAfterHours = false;
 
+    function isCurrentlyOpen(startHour, startMin, endHour, endMin) {
+        var now = getEstDate(today);
+        var currentMinutes = now.getHours() * 60 + now.getMinutes();
+        var openMinutes = startHour * 60 + startMin;
+        var closeMinutes = endHour * 60 + endMin;
+        return currentMinutes >= openMinutes && currentMinutes < closeMinutes;
+    }
+
     if (!override.isOverride) {
         var day = regularHours[getEstDate(today).getDay()];
         console.log(day);
-        if (day.isOpen &&
-            day.startHour <= getEstDate(today).getHours() &&
-            day.endHour > getEstDate(today).getHours()
-        ) {
-            message = 'Open today: ' + timeFormatter(day.startHour, day.endHour);
+        if (day.isOpen && isCurrentlyOpen(day.startHour, day.startMin, day.endHour, day.endMin)) {
+            message = 'Open today: ' + timeFormatter(day.startHour, day.startMin, day.endHour, day.endMin);
         } else {
             message = 'Closed';
             isAfterHours = true;
@@ -200,11 +218,8 @@ function updateHoursAndNotices() {
     }
 
     if (override.isOverride) {
-        if (override.isOpen &&
-            override.startHour <= getEstDate(today).getHours() &&
-            override.endHour > getEstDate(today).getHours()
-        ) {
-            message = 'Open today: ' + timeFormatter(override.startHour, override.endHour);
+        if (override.isOpen && isCurrentlyOpen(override.startHour, override.startMin, override.endHour, override.endMin)) {
+            message = 'Open today: ' + timeFormatter(override.startHour, override.startMin, override.endHour, override.endMin);
         } else {
             message = 'Closed';
             isAfterHours = true;
