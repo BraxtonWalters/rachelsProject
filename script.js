@@ -120,47 +120,35 @@ function checkOverrides(today, overrides) {
 }
 
 function timeFormatter(startHour, startMin, endHour, endMin) {
-  function formatTime(hour, min) {
-    var suffix = hour >= 12 ? "pm" : "am";
+  var now = new Date();
+  var easternNow = new Date(now.toLocaleString("en-US", { timeZone: TIMEZONE }));
+  var localNow = new Date(now.toLocaleString("en-US"));
+  var offsetMs = localNow.getTime() - easternNow.getTime();
+
+  var startDate = new Date();
+  startDate.setHours(startHour, startMin, 0, 0);
+  startDate = new Date(startDate.getTime() + offsetMs);
+
+  var endDate = new Date();
+  endDate.setHours(endHour, endMin, 0, 0);
+  endDate = new Date(endDate.getTime() + offsetMs);
+
+  var tzParts = now.toLocaleTimeString("en-US", { timeZoneName: "short" }).split(" ");
+  var tzAbbr = tzParts[tzParts.length - 1];
+
+  function formatTime(date) {
+    var hour = date.getHours();
+    var min = date.getMinutes();
     var displayHour = hour % 12;
-    if (displayHour === 0) {
-      displayHour = 12;
-    }
+    if (displayHour === 0) displayHour = 12;
+    var suffix = hour >= 12 ? "pm" : "am";
     if (min === 0) {
-      return displayHour + " " + suffix;
+      return displayHour + suffix;
     }
-    return displayHour + ":" + (min < 10 ? "0" : "") + min + " " + suffix;
+    return displayHour + ":" + (min < 10 ? "0" : "") + min + suffix;
   }
 
-  var start = new Date();
-  start.setHours(startHour, startMin, 0);
-
-  var end = new Date();
-  end.setHours(endHour, endMin, 0);
-
-  if (typeof Intl !== "undefined" && Intl.DateTimeFormat) {
-    var formatter = new Intl.DateTimeFormat("en-US", {
-      hour: "numeric",
-      minute: "2-digit",
-      hour12: true,
-      timeZone: TIMEZONE,
-    });
-    var startStr = formatter.format(start);
-    var endStr = formatter.format(end);
-    // Remove :00 for times on the hour for cleaner display
-    startStr = startStr.replace(/:00/, "");
-    endStr = endStr.replace(/:00/, "");
-    return startStr + " - " + endStr + " (" + TIMEZONE_ABBR + ")";
-  }
-
-  return (
-    formatTime(startHour, startMin) +
-    " - " +
-    formatTime(endHour, endMin) +
-    " (" +
-    TIMEZONE_ABBR +
-    ")"
-  );
+  return formatTime(startDate) + " - " + formatTime(endDate) + " (" + tzAbbr + ")";
 }
 
 function updateHoursAndNotices() {
@@ -200,7 +188,6 @@ function updateHoursAndNotices() {
 
   if (!override.isOverride) {
     var day = regularHours[getLocalDate(today).getDay()];
-    console.log(day);
     if (
       day.isOpen &&
       isCurrentlyOpen(day.startHour, day.startMin, day.endHour, day.endMin)
